@@ -6,4 +6,5 @@
     <string name="taggedSearch">Tagges Searches</string>
     <string name="missingMessage">Enter both a Twitter search query and a tag</string>
     <string name="ok">OK</string>
+    <string name="searchURL">http://mobile.twitter.com/search/</string>
 </resources>

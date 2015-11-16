@@ -3,15 +3,20 @@ package com.bdgolka.twittersearch;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -31,7 +36,7 @@ public class MainActivity extends ListActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //geting referenses on EditText
+        //getting references on EditText
         queryText = (EditText) findViewById(R.id.queryEditText);
         tagEditText = (EditText) findViewById(R.id.tagEditText);
 
@@ -43,7 +48,7 @@ public class MainActivity extends ListActivity {
         Collections.sort(tags, String.CASE_INSENSITIVE_ORDER);
 
         //Creating object ArrayAdapter and binding tags to ArrayView
-        adapter = new ArrayAdapter<String>(this, R.layout.list_item, tags);
+        adapter = new ArrayAdapter<>(this, R.layout.list_item, tags);
         setListAdapter(adapter);
 
         //Listener registration for saving request
@@ -52,7 +57,7 @@ public class MainActivity extends ListActivity {
         saveButton.setOnClickListener(saveButtonListener);
 
         //Listener registration for searching in Twitter
-        //getListView().setOnItemClickListener(itemClickListener);
+        getListView().setOnItemClickListener(itemClickListener);
 
         //Set listener who is able to delete or edit request
         //getListView().setOnItemClickListener(itemLongClickListener);
@@ -86,7 +91,32 @@ public class MainActivity extends ListActivity {
         }
     };
 
-    private void addTaggedSearch(String s, String s1) {
+    private void addTaggedSearch(String query, String tag) {
+        //Get object SharedPreferences.Editor to save new pare
+        SharedPreferences.Editor preferenceEditor = savedSearches.edit();
+        preferenceEditor.putString(tag, query); //save current query
+        preferenceEditor.apply();// save changes
 
+        // If tag was just created - add and sort tags
+        if (!tags.contains(tag)) {
+            tags.add(tag); // add new tag
+            Collections.sort(tags, String.CASE_INSENSITIVE_ORDER);
+            adapter.notifyDataSetChanged(); // reconnection to Listview
+        }
     }
+
+    //itemClickListener launch browser for result output
+       AdapterView.OnItemClickListener itemClickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+
+            //Get string request and create URL-address for request
+            String tag = ((TextView)view).getText().toString();
+            String urlString  = getString(R.string.searchURL) + Uri.encode(savedSearches.getString(tag,""), "UTF-8");
+
+            //Create intent for launching browser
+            Intent wevIntent = new Intent (Intent.ACTION_VIEW, Uri.parse(urlString));
+            startActivity(wevIntent);//Start browser for watching result
+        }
+    };
 }
