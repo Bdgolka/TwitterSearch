@@ -3,6 +3,7 @@ package com.bdgolka.twittersearch;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -11,12 +12,13 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -60,7 +62,7 @@ public class MainActivity extends ListActivity {
         getListView().setOnItemClickListener(itemClickListener);
 
         //Set listener who is able to delete or edit request
-        //getListView().setOnItemClickListener(itemLongClickListener);
+        getListView().setOnItemLongClickListener(itemLongClickListener);
     }
 
     //saveButtonListener save pare "tag-request" in SharePraferences
@@ -106,17 +108,120 @@ public class MainActivity extends ListActivity {
     }
 
     //itemClickListener launch browser for result output
-       AdapterView.OnItemClickListener itemClickListener = new AdapterView.OnItemClickListener() {
+    public OnItemClickListener itemClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
 
             //Get string request and create URL-address for request
-            String tag = ((TextView)view).getText().toString();
-            String urlString  = getString(R.string.searchURL) + Uri.encode(savedSearches.getString(tag,""), "UTF-8");
+            String tag = ((TextView) view).getText().toString();
+            String urlString = getString(R.string.searchURL) + Uri.encode(savedSearches.getString(tag, ""), "UTF-8");
 
             //Create intent for launching browser
-            Intent wevIntent = new Intent (Intent.ACTION_VIEW, Uri.parse(urlString));
+            Intent wevIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(urlString));
             startActivity(wevIntent);//Start browser for watching result
         }
     };
+
+    //itemLongClickListener shows dialog window for deleting or editing saved request
+    public OnItemLongClickListener itemLongClickListener = new AdapterView.OnItemLongClickListener() {
+        @Override
+        public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+            //get tag that was long clicked
+            final String tag = ((TextView) view).getText().toString();
+
+            //Create new AlertDialog object
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+            //create new title
+            builder.setTitle(getString(R.string.shareEditDeleteTitle, tag));
+
+            //assigning the list of options to output in dialog window
+            builder.setItems(R.array.dialog_items, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    switch (which) {
+                        case 0://share
+                            sharedSearch(tag);
+                            break;
+                        case 1: //edit
+                            //fill EditText with tag and request
+                            tagEditText.setText(tag);
+                            queryText.setText(savedSearches.getString(tag, ""));
+                            break;
+                        case 2: //delete
+                          deleteSearch(tag);
+                            break;
+                    }
+                }
+            });
+
+            //assigning the negative button AlertDialog
+            builder.setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                        @Override
+                        //called when "Cancel" button pressed
+                        public void onClick(DialogInterface dialog, int i) {
+                            dialog.cancel();//close AlertDialog
+                        }
+                    }
+            );
+            builder.create().show();//show AlertDialog
+            return true;
+        }
+    };
+
+    //Delete request after users confirmation
+    private void deleteSearch(final String tag) {
+        //create new AlertDialog object
+        AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(MainActivity.this);
+
+        //Assigning new AlertDialog
+        confirmBuilder.setMessage(getString(R.string.confirmMessage, tag));
+
+        //Assigning AlertDialog negative button
+        confirmBuilder.setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int i) {
+           //Called when button "Cancel" pressed
+                dialog.cancel();
+            }
+        });
+
+        //Assign AlertDialog positive buttom
+        confirmBuilder.setPositiveButton(getString(R.string.delete), new DialogInterface.OnClickListener() {
+            @Override
+            //Call when "Delete" button pressed
+            public void onClick(DialogInterface dialog, int i) {
+             tags.remove(tag);//delete tag from tags collection
+
+                //Get SharePreferences.Editor to delete request
+                SharedPreferences.Editor preferencesEditor = savedSearches.edit();
+                preferencesEditor.remove(tag);//delete request
+                preferencesEditor.apply();//save changes
+
+                //rebinding for renewed list output
+                adapter.notifyDataSetChanged();
+
+            }
+        });
+
+        confirmBuilder.create().show(); // AlertDialog output
+    }
+
+    //Selection the application to send saved request's URL-address
+    private void sharedSearch(String tag) {
+        //Create URL-address to represent the request
+        String urlString = getString(R.string.searchURL)+ Uri.encode(savedSearches.getString(tag,""), "UTF-8");
+
+        //Create Intent object to send urlString
+        Intent shareIntend = new Intent();
+        shareIntend.setAction(Intent.ACTION_SEND);
+        shareIntend.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.shareSubject));
+        shareIntend.putExtra(Intent.EXTRA_TEXT, getString(R.string.shareMessage, urlString));
+        shareIntend.setType("text/plain");
+
+        //Output the List of application with ability to send text
+        startActivity(Intent.createChooser(shareIntend,getString(R.string.sharedSearch)));
+    }
+    
+    
 }
