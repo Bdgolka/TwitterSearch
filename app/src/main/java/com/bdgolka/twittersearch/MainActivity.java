@@ -37,7 +37,7 @@ public class MainActivity extends ListActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        //test comments
         //getting references on EditText
         queryText = (EditText) findViewById(R.id.queryEditText);
         tagEditText = (EditText) findViewById(R.id.tagEditText);
